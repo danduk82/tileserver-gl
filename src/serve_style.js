@@ -11,7 +11,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
   var app = express().disable('x-powered-by');
 
   var styleFile = path.resolve(options.paths.styles, params.style);
-
+  var serverPath = options.paths.server_path;
   var styleJSON = clone(require(styleFile));
   Object.keys(styleJSON.sources).forEach(function(name) {
     var source = styleJSON.sources[name];
@@ -91,6 +91,8 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
     if (styleJSON_.sprite) {
       styleJSON_.sprite = fixUrl(styleJSON_.sprite, true, true);
     }
+    // TODO: how to configure this url
+    styleJSON.sources.openmaptiles.url = "http://localhost" + serverPath + "/v3.json"
     if (styleJSON_.glyphs) {
       styleJSON_.glyphs = fixUrl(styleJSON_.glyphs, false, true);
     }

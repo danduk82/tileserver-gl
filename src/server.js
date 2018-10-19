@@ -28,6 +28,9 @@ if (!isLight) {
   serve_rendered = require('./serve_rendered');
 }
 
+
+var serverPath = process.env.SERVER_PATH || '/data'
+
 function start(opts) {
   console.log('Starting server');
 
@@ -79,12 +82,17 @@ function start(opts) {
   paths.sprites = path.resolve(paths.root, paths.sprites || '');
   paths.mbtiles = path.resolve(paths.root, paths.mbtiles || '');
 
+
+  paths.server_path = serverPath;
+
   var startupPromises = [];
 
   var checkPath = function(type) {
     if (!fs.existsSync(paths[type])) {
       console.error('The specified path for "' + type + '" does not exist (' + paths[type] + ').');
       process.exit(1);
+    } else {
+        console.log('Path exists:', paths[type]);
     }
   };
   checkPath('styles');
@@ -183,7 +191,7 @@ function start(opts) {
 
     startupPromises.push(
       serve_data(options, serving.data, item, id, serving.styles).then(function(sub) {
-        app.use('/data/', sub);
+        app.use(serverPath + '/', sub);
       })
     );
   });
@@ -268,6 +276,7 @@ function start(opts) {
           data['key_query_part'] =
               req.query.key ? 'key=' + req.query.key + '&amp;' : '';
           data['key_query'] = req.query.key ? '?key=' + req.query.key : '';
+          data['server_path'] = serverPath;
           if (template === 'wmts') res.set('Content-Type', 'text/xml');
           return res.status(200).send(compiled(data));
         });
