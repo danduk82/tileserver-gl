@@ -29,7 +29,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
         }
       }
       var identifier = reportTiles(mbtilesFile, fromData);
-      source.url = 'local://data/' + identifier + '.json';
+      source.url = 'local:/'+serverPath +'/' + identifier + '.json';
     }
   });
 
@@ -91,8 +91,6 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
     if (styleJSON_.sprite) {
       styleJSON_.sprite = fixUrl(styleJSON_.sprite, true, true);
     }
-    // TODO: how to configure this url
-    styleJSON.sources.openmaptiles.url = "http://localhost" + serverPath + "/v3.json"
     if (styleJSON_.glyphs) {
       styleJSON_.glyphs = fixUrl(styleJSON_.glyphs, false, true);
     }
