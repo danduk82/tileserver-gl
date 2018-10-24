@@ -355,8 +355,13 @@ function start(opts) {
     };
   });
 
-  serveTemplate('/styles/:id/$', 'viewer', function(req) {
+  serveTemplate('/styles/:id*', 'viewer', function(req) {
     var id = req.params.id;
+    var i = 0;
+    while (req.params[i + '']) {
+      id += req.params[i + ''];
+      i++;
+    }
     var style = clone((config.styles || {})[id]);
     if (!style) {
       return null;
@@ -388,8 +393,13 @@ function start(opts) {
     return wmts;
   });
 
-  serveTemplate('/data/:id/$', 'data', function(req) {
+  serveTemplate('/data/:id*', 'data', function(req) {
     var id = req.params.id;
+    var i = 0;
+    while (req.params[i + '']) {
+      id += req.params[i + ''];
+      i++;
+    }
     var data = clone(serving.data[id]);
     if (!data) {
       return null;
