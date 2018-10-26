@@ -29,7 +29,7 @@ if (!isLight) {
 }
 
 
-var serverPath = process.env.SERVER_PATH || '/data'
+var serverDataPath = process.env.SERVER_DATA_PATH || '/data'
 
 function start(opts) {
   console.log('Starting server');
@@ -83,7 +83,7 @@ function start(opts) {
   paths.mbtiles = path.resolve(paths.root, paths.mbtiles || '');
 
 
-  paths.server_path = serverPath;
+  paths.server_data_path = serverDataPath;
 
   var startupPromises = [];
 
@@ -191,7 +191,7 @@ function start(opts) {
 
     startupPromises.push(
       serve_data(options, serving.data, item, id, serving.styles).then(function(sub) {
-        app.use(serverPath + '/', sub);
+        app.use(serverDataPath + '/', sub);
       })
     );
   });
@@ -276,7 +276,7 @@ function start(opts) {
           data['key_query_part'] =
               req.query.key ? 'key=' + req.query.key + '&amp;' : '';
           data['key_query'] = req.query.key ? '?key=' + req.query.key : '';
-          data['server_path'] = serverPath;
+          data['server_data_path'] = serverDataPath;
           if (template === 'wmts') res.set('Content-Type', 'text/xml');
           return res.status(200).send(compiled(data));
         });
@@ -394,6 +394,7 @@ function start(opts) {
   });
 
   serveTemplate('/data/:id*', 'data', function(req) {
+      consoel.log(req.params);
     var id = req.params.id;
     var i = 0;
     while (req.params[i + '']) {

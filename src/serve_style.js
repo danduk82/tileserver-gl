@@ -11,7 +11,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
   var app = express().disable('x-powered-by');
 
   var styleFile = path.resolve(options.paths.styles, params.style);
-  var serverPath = options.paths.server_path;
+  var serverDataPath = options.paths.server_data_path;
   var styleJSON = clone(require(styleFile));
   Object.keys(styleJSON.sources).forEach(function(name) {
     var source = styleJSON.sources[name];
@@ -29,7 +29,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
         }
       }
       var identifier = reportTiles(mbtilesFile, fromData);
-      source.url = 'local:/'+serverPath +'/' + identifier + '.json';
+      source.url = 'local:/'+serverDataPath +'/' + identifier + '.json';
     }
   });
 

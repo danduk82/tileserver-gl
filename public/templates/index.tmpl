@@ -72,7 +72,7 @@
       {{#each data}}
         <div class="item">
           {{#if thumbnail}}
-          <img src="{{server_path}}/{{@key}}/{{thumbnail}}{{&../key_query}}" alt="{{name}} preview" />
+          <img src="{{server_data_path}}/{{@key}}/{{thumbnail}}{{&../key_query}}" alt="{{name}} preview" />
           {{else}}
             <img src="/images/placeholder.png" alt="{{name}} preview" />
           {{/if}}
@@ -80,7 +80,7 @@
             <h3>{{name}}</h3>
             <p class="identifier">identifier: {{@key}}{{#if formatted_filesize}} | size: {{formatted_filesize}}{{/if}} | type: {{#is_vector}}vector{{/is_vector}}{{^is_vector}}raster{{/is_vector}} data</p>
             <p class="services">
-            services: <a href="{{server_path}}/{{@key}}.json{{&../key_query}}">TileJSON</a>
+            services: <a href="{{server_data_path}}/{{@key}}.json{{&../key_query}}">TileJSON</a>
               {{#if wmts_link}}
                 | <a href="{{&wmts_link}}">WMTS</a>
               {{/if}}
@@ -92,10 +92,10 @@
           </div>
           <div class="viewers">
             {{#is_vector}}
-            <a class="btn" href="{{server_path}}/{{@key}}/{{&../key_query}}{{viewer_hash}}">Inspect</a>
+            <a class="btn" href="{{server_data_path}}/{{@key}}/{{&../key_query}}{{viewer_hash}}">Inspect</a>
             {{/is_vector}}
             {{^is_vector}}
-            <a class="btn" href="{{server_path}}/{{@key}}/{{&../key_query}}{{viewer_hash}}">View</a>
+            <a class="btn" href="{{server_data_path}}/{{@key}}/{{&../key_query}}{{viewer_hash}}">View</a>
             {{/is_vector}}
           </div>
         </div>
