@@ -30,9 +30,12 @@ if (!isLight) {
 
 
 var serverDataPath = process.env.SERVER_DATA_PATH || '/data'
+var serverStylesPath = process.env.SERVER_STYLES_PATH || '/styles'
 
 function start(opts) {
   console.log('Starting server');
+  console.log('SERVER_DATA_PATH=', serverDataPath);
+  console.log('SERVER_STYLES_PATH=', serverStylesPath);
 
   var app = express().disable('x-powered-by'),
       serving = {
@@ -84,6 +87,7 @@ function start(opts) {
 
 
   paths.server_data_path = serverDataPath;
+  paths.server_styles_path = serverStylesPath;
 
   var startupPromises = [];
 
@@ -277,6 +281,7 @@ function start(opts) {
               req.query.key ? 'key=' + req.query.key + '&amp;' : '';
           data['key_query'] = req.query.key ? '?key=' + req.query.key : '';
           data['server_data_path'] = serverDataPath;
+          data['server_styles_path'] = serverStylesPath;
           if (template === 'wmts') res.set('Content-Type', 'text/xml');
           return res.status(200).send(compiled(data));
         });

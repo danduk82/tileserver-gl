@@ -12,6 +12,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
 
   var styleFile = path.resolve(options.paths.styles, params.style);
   var serverDataPath = options.paths.server_data_path;
+  var serverStylesPath = options.paths.server_styles_path;
   var styleJSON = clone(require(styleFile));
   Object.keys(styleJSON.sources).forEach(function(name) {
     var source = styleJSON.sources[name];
