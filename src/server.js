@@ -88,7 +88,7 @@ function start(opts) {
 
   paths.server_data_path = serverDataPath;
   paths.server_styles_path = serverStylesPath;
-
+  
   var startupPromises = [];
 
   var checkPath = function(type) {
@@ -154,7 +154,7 @@ function start(opts) {
         }, function(font) {
           serving.fonts[font] = true;
         }).then(function(sub) {
-          app.use('/styles/', sub);
+          app.use(serverStylesPath + '/', sub);
         }));
     }
     if (item.serve_rendered !== false) {
@@ -171,7 +171,7 @@ function start(opts) {
               return mbtilesFile;
             }
           ).then(function(sub) {
-            app.use('/styles/', sub);
+            app.use(serverStylesPath + '/', sub);
           })
         );
       } else {
@@ -210,7 +210,7 @@ function start(opts) {
         name: styleJSON.name,
         id: id,
         url: req.protocol + '://' + req.headers.host +
-             '/styles/' + id + '/style.json' + query
+             serverStylesPath + '/' + id + '/style.json' + query
       });
     });
     res.send(result);
@@ -221,7 +221,7 @@ function start(opts) {
       var info = clone(serving[type][id]);
       var path = '';
       if (type == 'rendered') {
-        path = 'styles/' + id;
+        path = serverStylesPath.replace(/^\//, "") + '/' + id;
       } else {
         path = type + '/' + id;
       }
@@ -312,7 +312,7 @@ function start(opts) {
         
         var tiles = utils.getTileUrls(
             req, style.serving_rendered.tiles,
-            'styles/' + id, style.serving_rendered.format);
+            serverStylesPath.replace(/^\//, "") + '/' + id, style.serving_rendered.format);
         style.xyz_link = tiles[0];
       }
     });
@@ -360,7 +360,7 @@ function start(opts) {
     };
   });
 
-  serveTemplate('/styles/:id*', 'viewer', function(req) {
+  serveTemplate( serverStylesPath +'/:id*', 'viewer', function(req) {
     var id = req.params.id;
     var i = 0;
     while (req.params[i + '']) {
@@ -383,7 +383,7 @@ function start(opts) {
     return res.redirect(301, '/styles/' + req.params.id + '/');
   });
   */
-  serveTemplate('/styles/:id/wmts.xml', 'wmts', function(req) {
+  serveTemplate(serverStylesPath + '/:id/wmts.xml', 'wmts', function(req) {
     var id = req.params.id;
     var wmts = clone((config.styles || {})[id]);
     if (!wmts) {

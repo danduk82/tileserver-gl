@@ -106,7 +106,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
     scalePattern += i.toFixed();
   }
   scalePattern = '@[' + scalePattern + ']x';
-
+  var serverStylesPath = options.paths.server_styles_path.replace(/^\//, "");
   var lastModified = new Date().toUTCString();
 
   var rootPath = options.paths.root;
@@ -747,7 +747,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
   app.get('/' + id + '.json', function(req, res, next) {
     var info = clone(tileJSON);
     info.tiles = utils.getTileUrls(req, info.tiles,
-                                   'styles/' + id, info.format);
+                                   serverStylesPath + '/' + id, info.format);
     return res.send(info);
   });
 

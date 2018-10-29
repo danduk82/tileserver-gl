@@ -55,7 +55,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
             .replace('{style}', path.basename(styleFile, '.json'))
             .replace('{styleJsonFolder}', path.relative(options.paths.sprites, path.dirname(styleFile)))
             );
-    styleJSON.sprite = 'local://styles/' + id + '/sprite';
+    styleJSON.sprite = 'local:/' + serverStylesPath + '/' + id + '/sprite';
   }
   if (styleJSON.glyphs && !httpTester.test(styleJSON.glyphs)) {
     styleJSON.glyphs = 'local://fonts/{fontstack}/{range}.pbf';
