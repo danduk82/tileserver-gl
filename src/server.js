@@ -84,8 +84,6 @@ function start(opts) {
   paths.fonts = path.resolve(paths.root, paths.fonts || '');
   paths.sprites = path.resolve(paths.root, paths.sprites || '');
   paths.mbtiles = path.resolve(paths.root, paths.mbtiles || '');
-
-
   paths.server_data_path = serverDataPath;
   paths.server_styles_path = serverStylesPath;
   
@@ -297,6 +295,7 @@ function start(opts) {
       style.name = (serving.styles[id] || serving.rendered[id] || {}).name;
       style.serving_data = serving.styles[id];
       style.serving_rendered = serving.rendered[id];
+      style.server_styles_path=serverStylesPath;
       if (style.serving_rendered) {
         var center = style.serving_rendered.center;
         if (center) {
@@ -375,6 +374,7 @@ function start(opts) {
     style.name = (serving.styles[id] || serving.rendered[id]).name;
     style.serving_data = serving.styles[id];
     style.serving_rendered = serving.rendered[id];
+    style.server_styles_path=serverStylesPath;
     return style;
   });
 
@@ -395,6 +395,7 @@ function start(opts) {
     wmts.id = id;
     wmts.name = (serving.styles[id] || serving.rendered[id]).name;
     wmts.baseUrl = (req.get('X-Forwarded-Protocol')?req.get('X-Forwarded-Protocol'):req.protocol) + '://' + req.get('host');
+    wmts.server_styles_path=serverStylesPath; 
     return wmts;
   });
 
