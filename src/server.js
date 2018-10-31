@@ -19,7 +19,7 @@ var packageJson = require('../package'),
     serve_font = require('./serve_font'),
     serve_rendered = null,
     serve_style = require('./serve_style'),
-    serve_data = require('./serve_data'),
+    serve_mbtiles = require('./serve_mbtiles'),
     utils = require('./utils');
 
 var isLight = packageJson.name.slice(-6) == '-light';
@@ -33,9 +33,9 @@ function start(opts) {
 
   var app = express().disable('x-powered-by'),
       serving = {
-        styles: {},
+        gl-styles: {},
         rendered: {},
-        data: {},
+        mbtiles: {},
         fonts: {}
       };
 
@@ -59,7 +59,7 @@ function start(opts) {
       config = clone(require(configPath));
     } catch (e) {
       console.log('ERROR: Config file not found or invalid!');
-      console.log('       See README.md for instructions and sample data.');
+      console.log('       See README.md for instructions and sample mbtiles.');
       process.exit(1);
     }
   }
@@ -74,7 +74,7 @@ function start(opts) {
   paths.root = path.resolve(
     configPath ? path.dirname(configPath) : process.cwd(),
     paths.root || '');
-  paths.styles = path.resolve(paths.root, paths.styles || '');
+  paths.gl-styles = path.resolve(paths.root, paths.gl-styles || '');
   paths.fonts = path.resolve(paths.root, paths.fonts || '');
   paths.sprites = path.resolve(paths.root, paths.sprites || '');
   paths.mbtiles = path.resolve(paths.root, paths.mbtiles || '');
@@ -87,54 +87,54 @@ function start(opts) {
       process.exit(1);
     }
   };
-  checkPath('styles');
+  checkPath('gl-styles');
   checkPath('fonts');
   checkPath('sprites');
   checkPath('mbtiles');
 
-  if (options.dataDecorator) {
+  if (options.mbtilesDecorator) {
     try {
-      options.dataDecoratorFunc = require(path.resolve(paths.root, options.dataDecorator));
+      options.mbtilesDecoratorFunc = require(path.resolve(paths.root, options.mbtilesDecorator));
     } catch (e) {}
   }
 
-  var data = clone(config.data || {});
+  var mbtiles = clone(config.mbtiles || {});
 
   if (opts.cors) {
     app.use(cors());
   }
 
-  Object.keys(config.styles || {}).forEach(function(id) {
-    var item = config.styles[id];
+  Object.keys(config.gl-styles || {}).forEach(function(id) {
+    var item = config.gl-styles[id];
     if (!item.style || item.style.length == 0) {
       console.log('Missing "style" property for ' + id);
       return;
     }
 
-    if (item.serve_data !== false) {
-      startupPromises.push(serve_style(options, serving.styles, item, id,
+    if (item.serve_mbtiles !== false) {
+      startupPromises.push(serve_style(options, serving.gl-styles, item, id,
         function(mbtiles, fromData) {
-          var dataItemId;
-          Object.keys(data).forEach(function(id) {
+          var mbtilesItemId;
+          Object.keys(mbtiles).forEach(function(id) {
             if (fromData) {
               if (id == mbtiles) {
-                dataItemId = id;
+                mbtilesItemId = id;
               }
             } else {
-              if (data[id].mbtiles == mbtiles) {
-                dataItemId = id;
+              if (mbtiles[id].mbtiles == mbtiles) {
+                mbtilesItemId = id;
               }
             }
           });
-          if (dataItemId) { // mbtiles exist in the data config
-            return dataItemId;
+          if (mbtilesItemId) { // mbtiles exist in the mbtiles config
+            return mbtilesItemId;
           } else if (fromData) {
-            console.log('ERROR: data "' + mbtiles + '" not found!');
+            console.log('ERROR: mbtiles "' + mbtiles + '" not found!');
             process.exit(1);
           } else {
             var id = mbtiles.substr(0, mbtiles.lastIndexOf('.')) || mbtiles;
-            while (data[id]) id += '_';
-            data[id] = {
+            while (mbtiles[id]) id += '_';
+            mbtiles[id] = {
               'mbtiles': mbtiles
             };
             return id;
@@ -142,7 +142,7 @@ function start(opts) {
         }, function(font) {
           serving.fonts[font] = true;
         }).then(function(sub) {
-          app.use('/styles/', sub);
+          app.use('/gl-styles/', sub);
         }));
     }
     if (item.serve_rendered !== false) {
@@ -151,15 +151,15 @@ function start(opts) {
           serve_rendered(options, serving.rendered, item, id,
             function(mbtiles) {
               var mbtilesFile;
-              Object.keys(data).forEach(function(id) {
+              Object.keys(mbtiles).forEach(function(id) {
                 if (id == mbtiles) {
-                  mbtilesFile = data[id].mbtiles;
+                  mbtilesFile = mbtiles[id].mbtiles;
                 }
               });
               return mbtilesFile;
             }
           ).then(function(sub) {
-            app.use('/styles/', sub);
+            app.use('/gl-styles/', sub);
           })
         );
       } else {
@@ -174,31 +174,31 @@ function start(opts) {
     })
   );
 
-  Object.keys(data).forEach(function(id) {
-    var item = data[id];
+  Object.keys(mbtiles).forEach(function(id) {
+    var item = mbtiles[id];
     if (!item.mbtiles || item.mbtiles.length == 0) {
       console.log('Missing "mbtiles" property for ' + id);
       return;
     }
 
     startupPromises.push(
-      serve_data(options, serving.data, item, id, serving.styles).then(function(sub) {
-        app.use('/data/', sub);
+      serve_mbtiles(options, serving.mbtiles, item, id, serving.gl-styles).then(function(sub) {
+        app.use('/mbtiles/', sub);
       })
     );
   });
 
-  app.get('/styles.json', function(req, res, next) {
+  app.get('/gl-styles.json', function(req, res, next) {
     var result = [];
     var query = req.query.key ? ('?key=' + req.query.key) : '';
-    Object.keys(serving.styles).forEach(function(id) {
-      var styleJSON = serving.styles[id];
+    Object.keys(serving.gl-styles).forEach(function(id) {
+      var styleJSON = serving.gl-styles[id];
       result.push({
         version: styleJSON.version,
         name: styleJSON.name,
         id: id,
         url: req.protocol + '://' + req.headers.host +
-             '/styles/' + id + '/style.json' + query
+             '/gl-styles/' + id + '/style.json' + query
       });
     });
     res.send(result);
@@ -209,7 +209,7 @@ function start(opts) {
       var info = clone(serving[type][id]);
       var path = '';
       if (type == 'rendered') {
-        path = 'styles/' + id;
+        path = 'gl-styles/' + id;
       } else {
         path = type + '/' + id;
       }
@@ -224,11 +224,11 @@ function start(opts) {
   app.get('/rendered.json', function(req, res, next) {
     res.send(addTileJSONs([], req, 'rendered'));
   });
-  app.get('/data.json', function(req, res, next) {
-    res.send(addTileJSONs([], req, 'data'));
+  app.get('/mbtiles.json', function(req, res, next) {
+    res.send(addTileJSONs([], req, 'mbtiles'));
   });
   app.get('/index.json', function(req, res, next) {
-    res.send(addTileJSONs(addTileJSONs([], req, 'rendered'), req, 'data'));
+    res.send(addTileJSONs(addTileJSONs([], req, 'rendered'), req, 'mbtiles'));
   });
 
   //------------------------------------
@@ -236,7 +236,7 @@ function start(opts) {
   app.use('/', express.static(path.join(__dirname, '../public/resources')));
 
   var templates = path.join(__dirname, '../public/templates');
-  var serveTemplate = function(urlPath, template, dataGetter) {
+  var serveTemplate = function(urlPath, template, mbtilesGetter) {
     var templateFile = templates + '/' + template + '.tmpl';
     if (template == 'index') {
       if (options.frontPage === false) {
@@ -256,20 +256,20 @@ function start(opts) {
         var compiled = handlebars.compile(content.toString());
 
         app.use(urlPath, function(req, res, next) {
-          var data = {};
-          if (dataGetter) {
-            data = dataGetter(req);
-            if (!data) {
+          var mbtiles = {};
+          if (mbtilesGetter) {
+            mbtiles = mbtilesGetter(req);
+            if (!mbtiles) {
               return res.status(404).send('Not found');
             }
           }
-          data['server_version'] = packageJson.name + ' v' + packageJson.version;
-          data['is_light'] = isLight;
-          data['key_query_part'] =
+          mbtiles['server_version'] = packageJson.name + ' v' + packageJson.version;
+          mbtiles['is_light'] = isLight;
+          mbtiles['key_query_part'] =
               req.query.key ? 'key=' + req.query.key + '&amp;' : '';
-          data['key_query'] = req.query.key ? '?key=' + req.query.key : '';
+          mbtiles['key_query'] = req.query.key ? '?key=' + req.query.key : '';
           if (template === 'wmts') res.set('Content-Type', 'text/xml');
-          return res.status(200).send(compiled(data));
+          return res.status(200).send(compiled(mbtiles));
         });
         resolve();
       });
@@ -277,11 +277,11 @@ function start(opts) {
   };
 
   serveTemplate('/$', 'index', function(req) {
-    var styles = clone(config.styles || {});
-    Object.keys(styles).forEach(function(id) {
-      var style = styles[id];
-      style.name = (serving.styles[id] || serving.rendered[id] || {}).name;
-      style.serving_data = serving.styles[id];
+    var gl-styles = clone(config.gl-styles || {});
+    Object.keys(gl-styles).forEach(function(id) {
+      var style = gl-styles[id];
+      style.name = (serving.gl-styles[id] || serving.rendered[id] || {}).name;
+      style.serving_mbtiles = serving.gl-styles[id];
       style.serving_rendered = serving.rendered[id];
       if (style.serving_rendered) {
         var center = style.serving_rendered.center;
@@ -298,37 +298,37 @@ function start(opts) {
         
         var tiles = utils.getTileUrls(
             req, style.serving_rendered.tiles,
-            'styles/' + id, style.serving_rendered.format);
+            'gl-styles/' + id, style.serving_rendered.format);
         style.xyz_link = tiles[0];
       }
     });
-    var data = clone(serving.data || {});
-    Object.keys(data).forEach(function(id) {
-      var data_ = data[id];
-      var center = data_.center;
+    var mbtiles = clone(serving.mbtiles || {});
+    Object.keys(mbtiles).forEach(function(id) {
+      var mbtiles_ = mbtiles[id];
+      var center = mbtiles_.center;
       if (center) {
-        data_.viewer_hash = '#' + center[2] + '/' +
+        mbtiles_.viewer_hash = '#' + center[2] + '/' +
                             center[1].toFixed(5) + '/' +
                             center[0].toFixed(5);
       }
-      data_.is_vector = data_.format == 'pbf';
-      if (!data_.is_vector) {
+      mbtiles_.is_vector = mbtiles_.format == 'pbf';
+      if (!mbtiles_.is_vector) {
         if (center) {
           var centerPx = mercator.px([center[0], center[1]], center[2]);
-          data_.thumbnail = center[2] + '/' +
+          mbtiles_.thumbnail = center[2] + '/' +
               Math.floor(centerPx[0] / 256) + '/' +
-              Math.floor(centerPx[1] / 256) + '.' + data_.format;
+              Math.floor(centerPx[1] / 256) + '.' + mbtiles_.format;
         }
 
         var tiles = utils.getTileUrls(
-            req, data_.tiles, 'data/' + id, data_.format, {
+            req, mbtiles_.tiles, 'mbtiles/' + id, mbtiles_.format, {
               'pbf': options.pbfAlias
             });
-        data_.xyz_link = tiles[0];
+        mbtiles_.xyz_link = tiles[0];
       }
-      if (data_.filesize) {
+      if (mbtiles_.filesize) {
         var suffix = 'kB';
-        var size = parseInt(data_.filesize, 10) / 1024;
+        var size = parseInt(mbtiles_.filesize, 10) / 1024;
         if (size > 1024) {
           suffix = 'MB';
           size /= 1024;
@@ -337,36 +337,36 @@ function start(opts) {
           suffix = 'GB';
           size /= 1024;
         }
-        data_.formatted_filesize = size.toFixed(2) + ' ' + suffix;
+        mbtiles_.formatted_filesize = size.toFixed(2) + ' ' + suffix;
       }
     });
     return {
-      styles: Object.keys(styles).length ? styles : null,
-      data: Object.keys(data).length ? data : null
+      gl-styles: Object.keys(gl-styles).length ? gl-styles : null,
+      mbtiles: Object.keys(mbtiles).length ? mbtiles : null
     };
   });
 
-  serveTemplate('/styles/:id/$', 'viewer', function(req) {
+  serveTemplate('/gl-styles/:id/$', 'viewer', function(req) {
     var id = req.params.id;
-    var style = clone((config.styles || {})[id]);
+    var style = clone((config.gl-styles || {})[id]);
     if (!style) {
       return null;
     }
     style.id = id;
-    style.name = (serving.styles[id] || serving.rendered[id]).name;
-    style.serving_data = serving.styles[id];
+    style.name = (serving.gl-styles[id] || serving.rendered[id]).name;
+    style.serving_mbtiles = serving.gl-styles[id];
     style.serving_rendered = serving.rendered[id];
     return style;
   });
 
   /*
   app.use('/rendered/:id/$', function(req, res, next) {
-    return res.redirect(301, '/styles/' + req.params.id + '/');
+    return res.redirect(301, '/gl-styles/' + req.params.id + '/');
   });
   */
-  serveTemplate('/styles/:id/wmts.xml', 'wmts', function(req) {
+  serveTemplate('/gl-styles/:id/wmts.xml', 'wmts', function(req) {
     var id = req.params.id;
-    var wmts = clone((config.styles || {})[id]);
+    var wmts = clone((config.gl-styles || {})[id]);
     if (!wmts) {
       return null;
     }
@@ -374,20 +374,20 @@ function start(opts) {
       return null;
     }
     wmts.id = id;
-    wmts.name = (serving.styles[id] || serving.rendered[id]).name;
+    wmts.name = (serving.gl-styles[id] || serving.rendered[id]).name;
     wmts.baseUrl = (req.get('X-Forwarded-Protocol')?req.get('X-Forwarded-Protocol'):req.protocol) + '://' + req.get('host');
     return wmts;
   });
 
-  serveTemplate('/data/:id/$', 'data', function(req) {
+  serveTemplate('/mbtiles/:id/$', 'mbtiles', function(req) {
     var id = req.params.id;
-    var data = clone(serving.data[id]);
-    if (!data) {
+    var mbtiles = clone(serving.mbtiles[id]);
+    if (!mbtiles) {
       return null;
     }
-    data.id = id;
-    data.is_vector = data.format == 'pbf';
-    return data;
+    mbtiles.id = id;
+    mbtiles.is_vector = mbtiles.format == 'pbf';
+    return mbtiles;
   });
 
   var startupComplete = false;

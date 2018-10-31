@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{name}} - TileServer GL</title>
-  <link rel="stylesheet" type="text/css" href="/mapbox-gl.css{{&key_query}}" />
+  <link rel="gl-stylesheet" type="text/css" href="/mapbox-gl.css{{&key_query}}" />
   <script src="/mapbox-gl.js{{&key_query}}"></script>
-  <link rel="stylesheet" type="text/css" href="/mapbox.css{{&key_query}}" />
+  <link rel="gl-stylesheet" type="text/css" href="/mapbox.css{{&key_query}}" />
   <script src="/mapbox.js{{&key_query}}"></script>
   <script src="/leaflet-hash.js{{&key_query}}"></script>
   <style>
@@ -27,12 +27,12 @@
       mapboxgl.setRTLTextPlugin('/mapbox-gl-rtl-text.js{{&key_query}}');
       var map = new mapboxgl.Map({
         container: 'map',
-        style: '/styles/{{id}}/style.json{{&key_query}}',
+        style: '/gl-styles/{{id}}/style.json{{&key_query}}',
         hash: true
       });
       map.addControl(new mapboxgl.NavigationControl());
     } else {
-      var map = L.mapbox.map('map', '/styles/{{id}}.json{{&key_query}}', { zoomControl: false });
+      var map = L.mapbox.map('map', '/gl-styles/{{id}}.json{{&key_query}}', { zoomControl: false });
       new L.Control.Zoom({ position: 'topright' }).addTo(map);
       setTimeout(function() {
         new L.Hash(map);

@@ -18,7 +18,7 @@ try {
 
 var utils = require('./utils');
 
-module.exports = function(options, repo, params, id, styles) {
+module.exports = function(options, repo, params, id, gl-styles) {
   var app = express().disable('x-powered-by');
 
   var mbtilesFile = path.resolve(options.paths.mbtiles, params.mbtiles);
@@ -59,8 +59,8 @@ module.exports = function(options, repo, params, id, styles) {
         Object.assign(tileJSON, params.tilejson || {});
         utils.fixTileJSONCenter(tileJSON);
 
-        if (options.dataDecoratorFunc) {
-          tileJSON = options.dataDecoratorFunc(id, 'tilejson', tileJSON);
+        if (options.mbtilesDecoratorFunc) {
+          tileJSON = options.mbtilesDecoratorFunc(id, 'tilejson', tileJSON);
         }
         resolve();
       });
@@ -86,7 +86,7 @@ module.exports = function(options, repo, params, id, styles) {
         x >= Math.pow(2, z) || y >= Math.pow(2, z)) {
       return res.status(404).send('Out of bounds');
     }
-    source.getTile(z, x, y, function(err, data, headers) {
+    source.getTile(z, x, y, function(err, mbtiles, headers) {
       if (err) {
         if (/does not exist/.test(err.message)) {
           return res.status(204).send(err.message);
@@ -94,16 +94,16 @@ module.exports = function(options, repo, params, id, styles) {
           return res.status(500).send(err.message);
         }
       } else {
-        if (data == null) {
+        if (mbtiles == null) {
           return res.status(404).send('Not found');
         } else {
           if (tileJSON['format'] == 'pbf') {
-            var isGzipped = data.slice(0,2).indexOf(
+            var isGzipped = mbtiles.slice(0,2).indexOf(
                 new Buffer([0x1f, 0x8b])) === 0;
             var style = req.query.style;
             if (style && tileshrinkGl) {
               if (!shrinkers[style]) {
-                var styleJSON = styles[style];
+                var styleJSON = gl-styles[style];
                 if (styleJSON) {
                   var sourceName = null;
                   for (var sourceName_ in styleJSON.sources) {
@@ -119,19 +119,19 @@ module.exports = function(options, repo, params, id, styles) {
               }
               if (shrinkers[style]) {
                 if (isGzipped) {
-                  data = zlib.unzipSync(data);
+                  mbtiles = zlib.unzipSync(mbtiles);
                   isGzipped = false;
                 }
-                data = shrinkers[style](data, z, tileJSON.maxzoom);
+                mbtiles = shrinkers[style](mbtiles, z, tileJSON.maxzoom);
                 //console.log(shrinkers[style].getStats());
               }
             }
-            if (options.dataDecoratorFunc) {
+            if (options.mbtilesDecoratorFunc) {
               if (isGzipped) {
-                data = zlib.unzipSync(data);
+                mbtiles = zlib.unzipSync(mbtiles);
                 isGzipped = false;
               }
-              data = options.dataDecoratorFunc(id, 'data', data, z, x, y);
+              mbtiles = options.mbtilesDecoratorFunc(id, 'mbtiles', mbtiles, z, x, y);
             }
           }
           if (format == 'pbf') {
@@ -140,11 +140,11 @@ module.exports = function(options, repo, params, id, styles) {
             headers['Content-Type'] = 'application/json';
 
             if (isGzipped) {
-              data = zlib.unzipSync(data);
+              mbtiles = zlib.unzipSync(mbtiles);
               isGzipped = false;
             }
 
-            var tile = new VectorTile(new pbf(data));
+            var tile = new VectorTile(new pbf(mbtiles));
             var geojson = {
               "type": "FeatureCollection",
               "features": []
@@ -158,18 +158,18 @@ module.exports = function(options, repo, params, id, styles) {
                 geojson.features.push(featureGeoJSON);
               }
             }
-            data = JSON.stringify(geojson);
+            mbtiles = JSON.stringify(geojson);
           }
           delete headers['ETag']; // do not trust the tile ETag -- regenerate
           headers['Content-Encoding'] = 'gzip';
           res.set(headers);
 
           if (!isGzipped) {
-            data = zlib.gzipSync(data);
+            mbtiles = zlib.gzipSync(mbtiles);
             isGzipped = true;
           }
 
-          return res.status(200).send(data);
+          return res.status(200).send(mbtiles);
         }
       }
     });
@@ -178,7 +178,7 @@ module.exports = function(options, repo, params, id, styles) {
   app.get('/' + id + '.json', function(req, res, next) {
     var info = clone(tileJSON);
     info.tiles = utils.getTileUrls(req, info.tiles,
-                                   'data/' + id, info.format, {
+                                   'mbtiles/' + id, info.format, {
                                      'pbf': options.pbfAlias
                                    });
     return res.send(info);

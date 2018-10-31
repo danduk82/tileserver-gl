@@ -10,7 +10,7 @@ var clone = require('clone'),
 module.exports = function(options, repo, params, id, reportTiles, reportFont) {
   var app = express().disable('x-powered-by');
 
-  var styleFile = path.resolve(options.paths.styles, params.style);
+  var styleFile = path.resolve(options.paths.gl-styles, params.style);
 
   var styleJSON = clone(require(styleFile));
   Object.keys(styleJSON.sources).forEach(function(name) {
@@ -29,7 +29,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
         }
       }
       var identifier = reportTiles(mbtilesFile, fromData);
-      source.url = 'local://data/' + identifier + '.json';
+      source.url = 'local://mbtiles/' + identifier + '.json';
     }
   });
 
@@ -54,7 +54,7 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
             .replace('{style}', path.basename(styleFile, '.json'))
             .replace('{styleJsonFolder}', path.relative(options.paths.sprites, path.dirname(styleFile)))
             );
-    styleJSON.sprite = 'local://styles/' + id + '/sprite';
+    styleJSON.sprite = 'local://gl-styles/' + id + '/sprite';
   }
   if (styleJSON.glyphs && !httpTester.test(styleJSON.glyphs)) {
     styleJSON.glyphs = 'local://fonts/{fontstack}/{range}.pbf';
@@ -105,14 +105,14 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
     var scale = req.params.scale,
         format = req.params.format;
     var filename = spritePath + (scale || '') + '.' + format;
-    return fs.readFile(filename, function(err, data) {
+    return fs.readFile(filename, function(err, mbtiles) {
       if (err) {
         console.log('Sprite load error:', filename);
         return res.status(404).send('File not found');
       } else {
         if (format == 'json') res.header('Content-type', 'application/json');
         if (format == 'png') res.header('Content-type', 'image/png');
-        return res.send(data);
+        return res.send(mbtiles);
       }
     });
   });

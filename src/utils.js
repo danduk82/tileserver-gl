@@ -80,7 +80,7 @@ var getFontPbf = function(allowedFonts, fontPath, name, range, fallbacks) {
         fallbacks = clone(allowedFonts || {});
       }
       delete fallbacks[name];
-      fs.readFile(filename, function(err, data) {
+      fs.readFile(filename, function(err, mbtiles) {
         if (err) {
           console.error('ERROR: Font not found:', name);
           if (fallbacks && Object.keys(fallbacks).length) {
@@ -105,7 +105,7 @@ var getFontPbf = function(allowedFonts, fontPath, name, range, fallbacks) {
             reject('Font load error: ' + name);
           }
         } else {
-          resolve(data);
+          resolve(mbtiles);
         }
       });
     } else {

@@ -46,7 +46,7 @@ var extensionToFormat = {
 };
 
 /**
- * Cache of response data by sharp output format and color.  Entry for empty
+ * Cache of response mbtiles by sharp output format and color.  Entry for empty
  * string is for unknown or unsupported formats.
  */
 var cachedEmptyResponses = {
@@ -61,7 +61,7 @@ var cachedEmptyResponses = {
  */
 function createEmptyResponse(format, color, callback) {
   if (!format || format === 'pbf') {
-    callback(null, {data: cachedEmptyResponses['']});
+    callback(null, {mbtiles: cachedEmptyResponses['']});
     return;
   }
 
@@ -73,9 +73,9 @@ function createEmptyResponse(format, color, callback) {
   }
 
   var cacheKey = format + ',' + color;
-  var data = cachedEmptyResponses[cacheKey];
-  if (data) {
-    callback(null, {data: data});
+  var mbtiles = cachedEmptyResponses[cacheKey];
+  if (mbtiles) {
+    callback(null, {mbtiles: mbtiles});
     return;
   }
 
@@ -93,11 +93,11 @@ function createEmptyResponse(format, color, callback) {
     if (!err) {
       cachedEmptyResponses[cacheKey] = buffer;
     }
-    callback(null, {data: buffer});
+    callback(null, {mbtiles: buffer});
   });
 }
 
-module.exports = function(options, repo, params, id, dataResolver) {
+module.exports = function(options, repo, params, id, mbtilesResolver) {
   var app = express().disable('x-powered-by');
 
   var maxScaleFactor = Math.min(Math.floor(options.maxScaleFactor || 3), 9);
@@ -152,8 +152,8 @@ module.exports = function(options, repo, params, id, dataResolver) {
           if (protocol == 'sprites') {
             var dir = options.paths[protocol];
             var file = unescape(req.url).substring(protocol.length + 3);
-            fs.readFile(path.join(dir, file), function(err, data) {
-              callback(err, { data: data });
+            fs.readFile(path.join(dir, file), function(err, mbtiles) {
+              callback(err, { mbtiles: mbtiles });
             });
           } else if (protocol == 'fonts') {
             var parts = req.url.split('/');
@@ -162,9 +162,9 @@ module.exports = function(options, repo, params, id, dataResolver) {
             utils.getFontsPbf(
               null, options.paths[protocol], fontstack, range, existingFonts
             ).then(function(concated) {
-              callback(null, {data: concated});
+              callback(null, {mbtiles: concated});
             }, function(err) {
-              callback(err, {data: null});
+              callback(err, {mbtiles: null});
             });
           } else if (protocol == 'mbtiles') {
             var parts = req.url.split('/');
@@ -175,7 +175,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
                 x = parts[4] | 0,
                 y = parts[5].split('.')[0] | 0,
                 format = parts[5].split('.')[1];
-            source.getTile(z, x, y, function(err, data, headers) {
+            source.getTile(z, x, y, function(err, mbtiles, headers) {
               if (err) {
                 //console.log('MBTiles error, serving empty', err);
                 createEmptyResponse(sourceInfo.format, sourceInfo.color, callback);
@@ -189,17 +189,17 @@ module.exports = function(options, repo, params, id, dataResolver) {
 
               if (format == 'pbf') {
                 try {
-                  response.data = zlib.unzipSync(data);
+                  response.mbtiles = zlib.unzipSync(mbtiles);
                 }
                 catch (err) {
                   console.log("Skipping incorrect header for tile mbtiles://%s/%s/%s/%s.pbf", id, z, x, y);
                 }
-                if (options.dataDecoratorFunc) {
-                  response.data = options.dataDecoratorFunc(
-                    sourceId, 'data', response.data, z, x, y);
+                if (options.mbtilesDecoratorFunc) {
+                  response.mbtiles = options.mbtilesDecoratorFunc(
+                    sourceId, 'mbtiles', response.mbtiles, z, x, y);
                 }
               } else {
-                response.data = data;
+                response.mbtiles = mbtiles;
               }
 
               callback(null, response);
@@ -230,7 +230,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
                   response.etag = res.headers.etag;
                 }
 
-                response.data = body;
+                response.mbtiles = body;
                 callback(null, response);
             });
           }
@@ -249,7 +249,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
     });
   };
 
-  var styleJSONPath = path.resolve(options.paths.styles, styleFile);
+  var styleJSONPath = path.resolve(options.paths.gl-styles, styleFile);
   styleJSON = clone(require(styleJSONPath));
 
   var httpTester = /^(http(s)?:)?\/\//;
@@ -278,7 +278,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
   tileJSON.tiles = params.domains || options.domains;
   utils.fixTileJSONCenter(tileJSON);
 
-  var dataProjWGStoInternalWGS = null;
+  var mbtilesProjWGStoInternalWGS = null;
 
   var queue = [];
   Object.keys(styleJSON.sources).forEach(function(name) {
@@ -299,9 +299,9 @@ module.exports = function(options, repo, params, id, dataResolver) {
         if (mapsTo) {
           mbtilesFile = mapsTo;
         }
-        mbtilesFile = dataResolver(mbtilesFile);
+        mbtilesFile = mbtilesResolver(mbtilesFile);
         if (!mbtilesFile) {
-          console.error('ERROR: data "' + mbtilesFile + '" not found!');
+          console.error('ERROR: mbtiles "' + mbtilesFile + '" not found!');
           process.exit(1);
         }
       }
@@ -319,11 +319,11 @@ module.exports = function(options, repo, params, id, dataResolver) {
               return;
             }
 
-            if (!dataProjWGStoInternalWGS && info.proj4) {
+            if (!mbtilesProjWGStoInternalWGS && info.proj4) {
               // how to do this for multiple sources with different proj4 defs?
               var to3857 = proj4('EPSG:3857');
               var toDataProj = proj4(info.proj4);
-              dataProjWGStoInternalWGS = function(xy) {
+              mbtilesProjWGStoInternalWGS = function(xy) {
                 return to3857.inverse(toDataProj.forward(xy));
               };
             }
@@ -337,8 +337,8 @@ module.exports = function(options, repo, params, id, dataResolver) {
             ];
             delete source.scheme;
 
-            if (options.dataDecoratorFunc) {
-              source = options.dataDecoratorFunc(name, 'tilejson', source);
+            if (options.mbtilesDecoratorFunc) {
+              source = options.mbtilesDecoratorFunc(name, 'tilejson', source);
             }
 
             if (!attributionOverride &&
@@ -407,14 +407,14 @@ module.exports = function(options, repo, params, id, dataResolver) {
         params.width *= 2;
         params.height *= 2;
       }
-      renderer.render(params, function(err, data) {
+      renderer.render(params, function(err, mbtiles) {
         pool.release(renderer);
         if (err) {
           console.error(err);
           return;
         }
 
-        var image = sharp(data, {
+        var image = sharp(mbtiles, {
           raw: {
             width: params.width * scale,
             height: params.height * scale,
@@ -619,7 +619,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
       }
 
       var transformer = raw ?
-        mercator.inverse.bind(mercator) : dataProjWGStoInternalWGS;
+        mercator.inverse.bind(mercator) : mbtilesProjWGStoInternalWGS;
 
       if (transformer) {
         var ll = transformer([x, y]);
@@ -642,7 +642,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
       var center = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
 
       var transformer = raw ?
-        mercator.inverse.bind(mercator) : dataProjWGStoInternalWGS;
+        mercator.inverse.bind(mercator) : mbtilesProjWGStoInternalWGS;
 
       if (transformer) {
         var minCorner = transformer(bbox.slice(0, 2));
@@ -712,7 +712,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
           format = req.params.format;
 
       var transformer = raw ?
-        mercator.inverse.bind(mercator) : dataProjWGStoInternalWGS;
+        mercator.inverse.bind(mercator) : mbtilesProjWGStoInternalWGS;
 
       var path = extractPathFromQuery(req.query, transformer);
       if (path.length < 2) {
@@ -747,7 +747,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
   app.get('/' + id + '.json', function(req, res, next) {
     var info = clone(tileJSON);
     info.tiles = utils.getTileUrls(req, info.tiles,
-                                   'styles/' + id, info.format);
+                                   'gl-styles/' + id, info.format);
     return res.send(info);
   });
 

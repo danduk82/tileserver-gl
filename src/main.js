@@ -82,46 +82,46 @@ var startWithMBTiles = function(mbtilesFile) {
   var instance = new mbtiles(mbtilesFile, function(err) {
     instance.getInfo(function(err, info) {
       if (err || !info) {
-        console.log('ERROR: Metadata missing in the MBTiles.');
+        console.log('ERROR: Metambtiles missing in the MBTiles.');
         console.log('       Make sure ' + path.basename(mbtilesFile) +
                     ' is valid MBTiles.');
         process.exit(1);
       }
       var bounds = info.bounds;
 
-      var styleDir = path.resolve(__dirname, "../node_modules/tileserver-gl-styles/");
+      var styleDir = path.resolve(__dirname, "../node_modules/tileserver-gl-gl-styles/");
 
       var config = {
         "options": {
           "paths": {
             "root": styleDir,
             "fonts": "fonts",
-            "styles": "styles",
+            "gl-styles": "gl-styles",
             "mbtiles": path.dirname(mbtilesFile)
           }
         },
-        "styles": {},
-        "data": {}
+        "gl-styles": {},
+        "mbtiles": {}
       };
 
       if (info.format == 'pbf' &&
           info.name.toLowerCase().indexOf('openmaptiles') > -1) {
         var omtV = (info.version || '').split('.');
 
-        config['data']['v' + omtV[0]] = {
+        config['mbtiles']['v' + omtV[0]] = {
           "mbtiles": path.basename(mbtilesFile)
         };
 
 
-        var styles = fs.readdirSync(path.resolve(styleDir, 'styles'));
-        for (var i = 0; i < styles.length; i++) {
-          var styleName = styles[i];
+        var gl-styles = fs.readdirSync(path.resolve(styleDir, 'gl-styles'));
+        for (var i = 0; i < gl-styles.length; i++) {
+          var styleName = gl-styles[i];
           var styleFileRel = styleName + '/style.json';
-          var styleFile = path.resolve(styleDir, 'styles', styleFileRel);
+          var styleFile = path.resolve(styleDir, 'gl-styles', styleFileRel);
           if (fs.existsSync(styleFile)) {
             var styleJSON = require(styleFile);
             var omtVersionCompatibility =
-              ((styleJSON || {}).metadata || {})['openmaptiles:version'] || 'x';
+              ((styleJSON || {}).metambtiles || {})['openmaptiles:version'] || 'x';
             var m = omtVersionCompatibility.toLowerCase().split('.');
 
             var isCompatible = !(
@@ -144,7 +144,7 @@ var startWithMBTiles = function(mbtilesFile) {
                   "bounds": bounds
                 }
               };
-              config['styles'][styleName] = styleObject;
+              config['gl-styles'][styleName] = styleObject;
             } else {
               console.log('Style', styleName, 'requires OpenMapTiles version',
               omtVersionCompatibility, 'but mbtiles is version', info.version);
@@ -153,8 +153,8 @@ var startWithMBTiles = function(mbtilesFile) {
         }
       } else {
         console.log('WARN: MBTiles not in "openmaptiles" format. ' +
-                    'Serving raw data only...');
-        config['data'][(info.id || 'mbtiles')
+                    'Serving raw mbtiles only...');
+        config['mbtiles'][(info.id || 'mbtiles')
                            .replace(/\//g, '_')
                            .replace(/\:/g, '_')
                            .replace(/\?/g, '_')] = {
@@ -196,7 +196,7 @@ fs.stat(path.resolve(opts.config), function(err, stats) {
         var url = 'https://github.com/klokantech/tileserver-gl/releases/download/v1.3.0/zurich_switzerland.mbtiles';
         var filename = 'zurich_switzerland.mbtiles';
         var stream = fs.createWriteStream(filename);
-        console.log('Downloading sample data (' + filename + ') from ' + url);
+        console.log('Downloading sample mbtiles (' + filename + ') from ' + url);
         stream.on('finish', function() {
           return startWithMBTiles(filename);
         });
