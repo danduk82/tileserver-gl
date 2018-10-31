@@ -234,7 +234,7 @@ function start(opts) {
   app.get('/rendered.json', function(req, res, next) {
     res.send(addTileJSONs([], req, 'rendered'));
   });
-  app.get('/data.json', function(req, res, next) {
+  app.get( serverDataPath + '.json', function(req, res, next) {
     res.send(addTileJSONs([], req, 'data'));
   });
   app.get('/index.json', function(req, res, next) {
@@ -247,6 +247,7 @@ function start(opts) {
 
   var templates = path.join(__dirname, '../public/templates');
   var serveTemplate = function(urlPath, template, dataGetter) {
+    console.log("first templateh");
     var templateFile = templates + '/' + template + '.tmpl';
     if (template == 'index') {
       if (options.frontPage === false) {
@@ -296,6 +297,7 @@ function start(opts) {
       style.serving_data = serving.styles[id];
       style.serving_rendered = serving.rendered[id];
       style.server_styles_path=serverStylesPath;
+      style.server_data_path=serverDataPath;
       if (style.serving_rendered) {
         var center = style.serving_rendered.center;
         if (center) {
@@ -325,6 +327,7 @@ function start(opts) {
                             center[0].toFixed(5);
       }
       data_.is_vector = data_.format == 'pbf';
+      data_.server_data_path=serverDataPath;
       if (!data_.is_vector) {
         if (center) {
           var centerPx = mercator.px([center[0], center[1]], center[2]);
@@ -334,7 +337,7 @@ function start(opts) {
         }
 
         var tiles = utils.getTileUrls(
-            req, data_.tiles, 'data/' + id, data_.format, {
+            req, data_.tiles, serverDataPath.replace(/^\//, "") + '/' + id, data_.format, {
               'pbf': options.pbfAlias
             });
         data_.xyz_link = tiles[0];
@@ -385,7 +388,10 @@ function start(opts) {
   */
   serveTemplate(serverStylesPath + '/:id/wmts.xml', 'wmts', function(req) {
     var id = req.params.id;
+    console.log(id);
+    console.log(config.styles);
     var wmts = clone((config.styles || {})[id]);
+    console.log(wmts);
     if (!wmts) {
       return null;
     }
@@ -399,8 +405,8 @@ function start(opts) {
     return wmts;
   });
 
-  serveTemplate('/data/:id*', 'data', function(req) {
-      consoel.log(req.params);
+  serveTemplate( serverDataPath + '/:id*(?!(pbf|json)$)', 'data', function(req) {
+      console.log(req.params);
     var id = req.params.id;
     var i = 0;
     while (req.params[i + '']) {
@@ -413,6 +419,7 @@ function start(opts) {
     }
     data.id = id;
     data.is_vector = data.format == 'pbf';
+    data.server_data_path=serverDataPath;
     return data;
   });
 

@@ -69,8 +69,8 @@ module.exports = function(options, repo, params, id, styles) {
   });
 
   var tilePattern = '/' + id + '/:z(\\d+)/:x(\\d+)/:y(\\d+).:format([\\w.]+)';
-
   app.get(tilePattern, function(req, res, next) {
+  console.log("Hello Tile Pattern");
     var z = req.params.z | 0,
         x = req.params.x | 0,
         y = req.params.y | 0;
@@ -88,6 +88,7 @@ module.exports = function(options, repo, params, id, styles) {
       return res.status(404).send('Out of bounds');
     }
     source.getTile(z, x, y, function(err, data, headers) {
+    console.log("source get tile entry");
       if (err) {
         if (/does not exist/.test(err.message)) {
           return res.status(204).send(err.message);
@@ -176,7 +177,7 @@ module.exports = function(options, repo, params, id, styles) {
     });
   });
   app.get('/' + id + '.json', function(req, res, next) {
-
+  console.log("app get id json");
     var info = clone(tileJSON);
     info.tiles = utils.getTileUrls(req, info.tiles,
                                    serverDataPath +'/' + id, info.format, {

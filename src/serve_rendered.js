@@ -470,6 +470,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
   };
 
   app.get(tilePattern, function(req, res, next) {
+    console.log("hello other tile pattern");
     var modifiedSince = req.get('if-modified-since'), cc = req.get('cache-control');
     if (modifiedSince && (!cc || cc.indexOf('no-cache') == -1)) {
       if (new Date(lastModified) <= new Date(modifiedSince)) {
@@ -603,6 +604,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
                     FLOAT_PATTERN, FLOAT_PATTERN);
 
     app.get(util.format(staticPattern, centerPattern), function(req, res, next) {
+     console.log("hi static pattern and centerpattern");
       var raw = req.params.raw;
       var z = +req.params.z,
           x = +req.params.x,
@@ -679,6 +681,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
     app.get(util.format(staticPattern, boundsPattern), serveBounds);
 
     app.get('/' + id + '/static/', function(req, res, next) {
+    console.log("hey static");
       for (var key in req.query) {
         req.query[key.toLowerCase()] = req.query[key];
       }
@@ -703,6 +706,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
     var autoPattern = 'auto';
 
     app.get(util.format(staticPattern, autoPattern), function(req, res, next) {
+      console.log("hello auto I guess");
       var raw = req.params.raw;
       var w = req.params.width | 0,
           h = req.params.height | 0,
@@ -745,6 +749,7 @@ module.exports = function(options, repo, params, id, dataResolver) {
   }
 
   app.get('/' + id + '.json', function(req, res, next) {
+    console.log("hey other json.");
     var info = clone(tileJSON);
     info.tiles = utils.getTileUrls(req, info.tiles,
                                    serverStylesPath + '/' + id, info.format);
