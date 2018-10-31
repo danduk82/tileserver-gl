@@ -64,7 +64,6 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
   repo[id] = styleJSON;
 
   app.get('/' + id + '/style.json', function(req, res, next) {
-    console.log("hey boï : style json");
     var fixUrl = function(url, opt_nokey, opt_nostyle) {
       if (!url || (typeof url !== 'string') || url.indexOf('local://') !== 0) {
         return url;
@@ -101,7 +100,6 @@ module.exports = function(options, repo, params, id, reportTiles, reportFont) {
 
   app.get('/' + id + '/sprite:scale(@[23]x)?\.:format([\\w]+)',
      function(req, res, next) {
-     console.log("some sprites I guess");
     if (!spritePath) {
       return res.status(404).send('File not found');
     }

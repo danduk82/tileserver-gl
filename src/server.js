@@ -34,8 +34,6 @@ var serverStylesPath = process.env.SERVER_STYLES_PATH || '/styles'
 
 function start(opts) {
   console.log('Starting server');
-  console.log('SERVER_DATA_PATH=', serverDataPath);
-  console.log('SERVER_STYLES_PATH=', serverStylesPath);
 
   var app = express().disable('x-powered-by'),
       serving = {
@@ -247,7 +245,6 @@ function start(opts) {
 
   var templates = path.join(__dirname, '../public/templates');
   var serveTemplate = function(urlPath, template, dataGetter) {
-    console.log("first templateh");
     var templateFile = templates + '/' + template + '.tmpl';
     if (template == 'index') {
       if (options.frontPage === false) {
@@ -388,10 +385,7 @@ function start(opts) {
   */
   serveTemplate(serverStylesPath + '/:id/wmts.xml', 'wmts', function(req) {
     var id = req.params.id;
-    console.log(id);
-    console.log(config.styles);
     var wmts = clone((config.styles || {})[id]);
-    console.log(wmts);
     if (!wmts) {
       return null;
     }
@@ -406,7 +400,6 @@ function start(opts) {
   });
 
   serveTemplate( serverDataPath + '/:id*(?!(pbf|json)$)', 'data', function(req) {
-      console.log(req.params);
     var id = req.params.id;
     var i = 0;
     while (req.params[i + '']) {
