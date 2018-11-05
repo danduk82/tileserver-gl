@@ -346,8 +346,13 @@ function start(opts) {
     };
   });
 
-  serveTemplate('/gl-styles/:id/$', 'viewer', function(req) {
+  serveTemplate('/gl-styles/:id/*', 'viewer', function(req) {
     var id = req.params.id;
+    var i = 0;
+    while (req.params[i + '']) {
+      id += '/' + req.params[i + ''].slice(0,-1);
+      i++;
+    }
     var style = clone((config.styles || {})[id]);
     if (!style) {
       return null;
@@ -379,8 +384,13 @@ function start(opts) {
     return wmts;
   });
 
-  serveTemplate('/mbtiles/:id/$', 'data', function(req) {
+  serveTemplate('/mbtiles/:id/*', 'data', function(req) {
     var id = req.params.id;
+    var i = 0;
+    while (req.params[i + '']) {
+      id += '/' + req.params[i + ''].slice(0,-1);
+      i++;
+    }
     var data = clone(serving.data[id]);
     if (!data) {
       return null;
